@@ -3,6 +3,8 @@
 namespace App\Filament\Resources\AtkStockUsages\Tables;
 
 use App\Filament\Actions\ApprovalAction;
+use App\Filament\Actions\BulkExportStockUsagePdfAction;
+use App\Filament\Actions\ExportStockUsagePdfAction;
 use App\Filament\Actions\ResubmitAction;
 use App\Filament\Resources\AtkStockUsages\Schemas\AtkStockUsageForm;
 use App\Models\AtkStockUsage;
@@ -88,6 +90,7 @@ class AtkStockUsagesTable
                     }),
             ])
             ->recordActions([
+                ExportStockUsagePdfAction::make(),
                 ViewAction::make(),
                 EditAction::make()
                     ->successNotificationTitle('Penggunaan stok ATK berhasil diperbarui')
@@ -126,6 +129,7 @@ class AtkStockUsagesTable
             ])
             ->bulkActions([
                 BulkActionGroup::make([
+                    BulkExportStockUsagePdfAction::make(),
                     DeleteBulkAction::make()
                         ->successNotificationTitle('Penggunaan stok ATK berhasil dihapus'),
                 ]),

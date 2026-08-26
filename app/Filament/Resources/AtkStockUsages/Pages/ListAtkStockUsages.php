@@ -2,16 +2,13 @@
 
 namespace App\Filament\Resources\AtkStockUsages\Pages;
 
-use App\Exports\AtkStockUsagePdfExport;
 use App\Filament\Resources\AtkStockUsages\AtkStockUsageResource;
 use App\Models\AtkStockUsage;
 use App\Services\ApprovalProcessingService;
-use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Support\Enums\Width;
-use Filament\Support\Icons\Heroicon;
 
 class ListAtkStockUsages extends ListRecords
 {
@@ -20,13 +17,6 @@ class ListAtkStockUsages extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('exportPdf')
-                ->label('Export PDF')
-                ->icon(Heroicon::ArrowDownTray)
-                ->color('danger')
-                ->action(fn () => AtkStockUsagePdfExport::download(
-                    $this->getFilteredTableQuery()->pluck('id')->toArray(),
-                )),
             CreateAction::make()
                 ->mutateFormDataUsing(function (array $data) {
                     $data['division_id'] = $data['division_id'] ?? auth()->user()->divisions->first()?->id;
