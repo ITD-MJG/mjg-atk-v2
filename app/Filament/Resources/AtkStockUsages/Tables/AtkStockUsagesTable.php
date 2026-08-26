@@ -56,7 +56,12 @@ class AtkStockUsagesTable
                 TextColumn::make('approved_by.name')
                     ->label('Approved By')
                     ->getStateUsing(fn ($record) => $record->approved_by?->name)
-                    ->searchable(),
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->whereHas('approvalHistory', function ($q) use ($search) {
+                            $q->where('action', 'approved')
+                                ->whereHas('user', fn ($u) => $u->where('name', 'like', "%{$search}%"));
+                        });
+                    }),
             ])
             ->filters([
                 SelectFilter::make('division_id')
