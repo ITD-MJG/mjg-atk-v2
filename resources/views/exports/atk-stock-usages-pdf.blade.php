@@ -87,10 +87,6 @@
         table.items td.num, table.items th.num {
             text-align: right;
         }
-        .total-row td {
-            background: #f9fafb;
-            font-weight: bold;
-        }
         .badge {
             display: inline-block;
             padding: 2px 8px;
@@ -167,8 +163,6 @@
                         <th>Kategori</th>
                         <th>Item</th>
                         <th class="num">Qty</th>
-                        <th class="num">Biaya Rata-rata</th>
-                        <th class="num">Subtotal</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -177,19 +171,11 @@
                             <td>{{ $item->category?->name ?? '-' }}</td>
                             <td>{{ $item->item?->name ?? '-' }}</td>
                             <td class="num">{{ $item->quantity }}</td>
-                            <td class="num">Rp {{ number_format($item->moving_average_cost, 0, ',', '.') }}</td>
-                            <td class="num">Rp {{ number_format($item->quantity * $item->moving_average_cost, 0, ',', '.') }}</td>
                         </tr>
                     @empty
-                        <tr><td colspan="5" class="empty">Tidak ada item.</td></tr>
+                        <tr><td colspan="3" class="empty">Tidak ada item.</td></tr>
                     @endforelse
                 </tbody>
-                <tfoot>
-                    <tr class="total-row">
-                        <td colspan="4">Total Perkiraan Biaya</td>
-                        <td class="num">Rp {{ number_format($usage->potential_cost, 0, ',', '.') }}</td>
-                    </tr>
-                </tfoot>
             </table>
 
             @if($usage->notes)
