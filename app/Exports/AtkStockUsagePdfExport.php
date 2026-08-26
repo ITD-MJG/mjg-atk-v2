@@ -23,7 +23,14 @@ class AtkStockUsagePdfExport
 
         $pdf = Pdf::loadView('exports.atk-stock-usages-pdf', ['usages' => $usages]);
 
-        $filename = 'atk_stock_usages_'.now()->format('Y-m-d_H-i-s').'.pdf';
+        $stamp = now()->format('Y-m-d_H-i-s');
+
+        // For a single-record export, name the file after the usage code
+        // (request_number) and keep the timestamp. Bulk exports keep the
+        // generic prefix.
+        $filename = $usages->count() === 1
+            ? $usages->first()->request_number.'_'.$stamp.'.pdf'
+            : 'atk_stock_usages_'.$stamp.'.pdf';
 
         // Use streamDownload instead of $pdf->download(): the latter returns a
         // BinaryFileResponse whose raw PDF bytes cannot be JSON-serialized when
