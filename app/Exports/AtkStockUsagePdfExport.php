@@ -25,7 +25,14 @@ class AtkStockUsagePdfExport
 
         $filename = 'atk_stock_usages_'.now()->format('Y-m-d_H-i-s').'.pdf';
 
-        return $pdf->download($filename);
+        // Use streamDownload instead of $pdf->download(): the latter returns a
+        // BinaryFileResponse whose raw PDF bytes cannot be JSON-serialized when
+        // the action runs inside a Livewire request, causing
+        // "Malformed UTF-8 characters, possibly incorrectly encoded"
+        // (see barryvdh/laravel-dompdf#1009).
+        return response()->streamDownload(function () use ($pdf) {
+            echo $pdf->stream();
+        }, $filename);
     }
 
     /**
