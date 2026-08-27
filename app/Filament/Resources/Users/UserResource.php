@@ -133,7 +133,7 @@ class UserResource extends Resource
 
                         Notification::make()
                             ->title('Password Reset')
-                            ->body('Password for '.$record->name.' has been reset to default.')
+                            ->body('Password for '.$record->name.' has been reset to default: Atk2025!')
                             ->success()
                             ->send();
                     }),
