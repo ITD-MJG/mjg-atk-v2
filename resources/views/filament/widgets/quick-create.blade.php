@@ -1,13 +1,13 @@
 <x-filament-widgets::widget>
     <x-filament::section heading="Quick Create">
-        <div class="flex flex-col gap-2 sm:flex-row sm:gap-2">
+        <div class="grid grid-cols-1 gap-2 sm:grid-cols-3">
             @foreach($this->getActions() as $action)
                 <x-filament::button
                     tag="a"
                     :href="$action['url']"
                     :icon="$action['icon']"
                     color="{{ $action['color'] }}"
-                    class="w-full sm:w-auto sm:flex-1"
+                    class="w-full"
                 >
                     {{ $action['label'] }}
                 </x-filament::button>
