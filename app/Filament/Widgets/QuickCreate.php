@@ -13,6 +13,8 @@ class QuickCreate extends Widget
 
     protected static ?int $sort = 0;
 
+    protected int|string|array $columnSpan = 'full';
+
     public static function canView(): bool
     {
         $user = auth()->user();
