@@ -30,17 +30,20 @@ class AtkStockRequestStatus extends StatsOverviewWidget
 
             // Count pending requests: latest approval history action is 'submitted' (submitted, no approver action yet)
             $pendingCount = AtkStockRequest::when($divisionIds, fn ($q) => $q->whereIn('division_id', $divisionIds))
+                ->where('status', \App\Enums\AtkStockRequestStatus::Published)
                 ->whereLatestApprovalAction('submitted')
                 ->count();
 
             // Count approved requests: latest approval history action is 'approved' (flow complete)
             $approvedCount = AtkStockRequest::when($divisionIds, fn ($q) => $q->whereIn('division_id', $divisionIds))
+                ->where('status', \App\Enums\AtkStockRequestStatus::Published)
                 ->whereLatestApprovalAction('approved')
                 ->count();
 
             // Count in-progress requests: latest approval history action is 'pending'
             // (at least one step approved, flow still waiting on the next approver)
             $onProgressCount = AtkStockRequest::when($divisionIds, fn ($q) => $q->whereIn('division_id', $divisionIds))
+                ->where('status', \App\Enums\AtkStockRequestStatus::Published)
                 ->whereLatestApprovalAction('pending')
                 ->count();
 
