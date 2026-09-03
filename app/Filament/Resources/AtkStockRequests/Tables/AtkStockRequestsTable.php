@@ -213,6 +213,50 @@ class AtkStockRequestsTable
                             ->visible(fn ($record) => $record->status === AtkStockRequestStatus::Published),
                     ])
                     ->successNotificationTitle('Permintaan stok ATK berhasil diperbarui'),
+                Action::make('publish')
+                    ->label('Publish')
+                    ->icon(Heroicon::ArrowUpTray)
+                    ->color('success')
+                    ->visible(function ($record) {
+                        if ($record->status !== AtkStockRequestStatus::Draft) {
+                            return false;
+                        }
+
+                        $user = auth()->user();
+
+                        // Requester, or a division Admin/Head of the record's division
+                        return $user->id === $record->requester_id
+                            || ($user->hasRole(['Admin', 'Head']) && $user->belongsToDivision($record->division_id));
+                    })
+                    ->requiresConfirmation()
+                    ->action(function ($record) {
+                        $record->update(['status' => AtkStockRequestStatus::Published]);
+                        if (! $record->approval) {
+                            app(ApprovalProcessingService::class)->createApproval($record, AtkStockRequest::class);
+                        }
+
+                        Notification::make()
+                            ->title('Permintaan stok ATK berhasil dipublikasikan')
+                            ->success()
+                            ->send();
+                    }),
+                Action::make('unpublish')
+                    ->label('Unpublish')
+                    ->icon(Heroicon::ArrowDownTray)
+                    ->color('gray')
+                    ->visible(function ($record) {
+                        return $record->status === AtkStockRequestStatus::Published
+                            && $record->approval_status === 'pending';
+                    })
+                    ->requiresConfirmation()
+                    ->action(function ($record) {
+                        $record->update(['status' => AtkStockRequestStatus::Draft]);
+
+                        Notification::make()
+                            ->title('Permintaan stok ATK berhasil ditarik menjadi draft')
+                            ->success()
+                            ->send();
+                    }),
                 Action::make('export')
                     ->label('Export')
                     ->icon(Heroicon::ArrowDownTray)
