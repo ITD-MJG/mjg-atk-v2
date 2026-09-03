@@ -112,16 +112,16 @@ class AtkTransferStocksTable
                         return $query->when(
                             $data['value'],
                             function (Builder $query, $value): Builder {
-                                return $query->whereHas('approvalHistory', function ($q) use ($value) {
-                                    $q->where('id', function ($sub) {
-                                        $sub->select('id')
-                                            ->from('approval_histories')
-                                            ->whereColumn('approvable_id', 'atk_transfer_stocks.id')
-                                            ->where('approvable_type', \App\Models\AtkTransferStock::class)
-                                            ->orderByDesc('performed_at')
-                                            ->limit(1);
-                                    })->where('action', $value);
-                                });
+                                // Map user-facing statuses to the actions ApprovalProcessingService
+                                // actually writes to approval_histories: 'submitted' (awaiting first
+                                // approval), 'pending' (step approved, flow still in progress).
+                                $action = match ($value) {
+                                    'pending' => 'submitted',
+                                    'partially_approved' => 'pending',
+                                    default => $value,
+                                };
+
+                                return $query->whereLatestApprovalAction($action);
                             }
                         );
                     }),

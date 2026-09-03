@@ -57,7 +57,14 @@ class AtkStockRequestsTable
                     ->label('Status Approval')
                     ->badge()
                     ->getStateUsing(fn ($record) => $record->approval_status)
-                    ->formatStateUsing(fn ($state) => ucfirst($state))
+                    ->formatStateUsing(fn ($state) => match ($state) {
+                        'submitted' => 'Pending',
+                        'pending' => 'On Progress',
+                        'approved' => 'Approved',
+                        'rejected' => 'Rejected',
+                        'cancelled' => 'Cancelled',
+                        default => ucfirst((string) $state),
+                    })
                     ->color(
                         fn (string $state): string => match (true) {
                             str_contains(strtolower($state), 'approved') => 'success',
@@ -103,16 +110,16 @@ class AtkStockRequestsTable
                         return $query->when(
                             $data['value'],
                             function (Builder $query, $value): Builder {
-                                return $query->whereHas('approvalHistory', function ($q) use ($value) {
-                                    $q->where('id', function ($sub) {
-                                        $sub->select('id')
-                                            ->from('approval_histories')
-                                            ->whereColumn('approvable_id', 'atk_stock_requests.id')
-                                            ->where('approvable_type', AtkStockRequest::class)
-                                            ->orderByDesc('performed_at')
-                                            ->limit(1);
-                                    })->where('action', $value);
-                                });
+                                // Map user-facing statuses to the actions ApprovalProcessingService
+                                // actually writes to approval_histories: 'submitted' (awaiting first
+                                // approval), 'pending' (step approved, flow still in progress).
+                                $action = match ($value) {
+                                    'pending' => 'submitted',
+                                    'partially_approved' => 'pending',
+                                    default => $value,
+                                };
+
+                                return $query->whereLatestApprovalAction($action);
                             }
                         );
                     }),

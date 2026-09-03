@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\StockTransferModelTrait;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -133,6 +134,28 @@ class AtkTransferStock extends Model
     public function approvalHistory()
     {
         return $this->morphMany(ApprovalHistory::class, 'approvable');
+    }
+
+    /**
+     * Scope to records whose latest approval history action equals the given value.
+     *
+     * History actions written by ApprovalProcessingService:
+     * 'submitted' (initial/resubmitted), 'pending' (step approved, flow still in progress),
+     * 'approved' (flow complete), 'rejected', 'cancelled'.
+     */
+    public function scopeWhereLatestApprovalAction(Builder $query, string $action): Builder
+    {
+        return $query->whereHas('approvalHistory', function ($q) use ($action): void {
+            $q->where('id', function ($sub) {
+                $sub->select('id')
+                    ->from('approval_histories')
+                    ->whereColumn('approvable_id', $this->getTable().'.id')
+                    ->where('approvable_type', static::class)
+                    ->orderByDesc('performed_at')
+                    ->orderByDesc('id')
+                    ->limit(1);
+            })->where('action', $action);
+        });
     }
 
     // Add status attribute if it doesn't exist

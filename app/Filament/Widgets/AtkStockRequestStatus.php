@@ -28,31 +28,20 @@ class AtkStockRequestStatus extends StatsOverviewWidget
         if ($user) {
             $divisionIds = $user->isSuperAdmin() ? null : $user->divisions->pluck('id');
 
-            // Count pending requests: division's requests where there is no approval history or the latest approval history action is not 'approved' or 'rejected'
+            // Count pending requests: latest approval history action is 'submitted' (submitted, no approver action yet)
             $pendingCount = AtkStockRequest::when($divisionIds, fn ($q) => $q->whereIn('division_id', $divisionIds))
-                ->whereDoesntHave('approvalHistory', function ($query) {
-                    $query->orderByDesc('performed_at')->where('action', 'rejected');
-                })
-                ->whereDoesntHave('approvalHistory', function ($query) {
-                    $query->orderByDesc('performed_at')->where('action', 'partially_approved');
-                })
-                ->whereDoesntHave('approvalHistory', function ($query): void {
-                    $query->orderByDesc('performed_at')->where('action', 'approved');
-                })
+                ->whereLatestApprovalAction('submitted')
                 ->count();
 
-            // Count approved requests: division's requests where the latest approval history action is 'approved'
+            // Count approved requests: latest approval history action is 'approved' (flow complete)
             $approvedCount = AtkStockRequest::when($divisionIds, fn ($q) => $q->whereIn('division_id', $divisionIds))
-                ->whereHas('approvalHistory', function ($query) {
-                    $query->orderBy('performed_at', 'desc')->limit(1)->where('action', 'approved');
-                })
+                ->whereLatestApprovalAction('approved')
                 ->count();
 
-            // Count on progress requests: This may need to be adjusted based on your specific business logic
+            // Count in-progress requests: latest approval history action is 'pending'
+            // (at least one step approved, flow still waiting on the next approver)
             $onProgressCount = AtkStockRequest::when($divisionIds, fn ($q) => $q->whereIn('division_id', $divisionIds))
-                ->whereHas('approvalHistory', function ($query) {
-                    $query->orderBy('performed_at', 'desc')->limit(1)->where('action', 'partially_approved');
-                })
+                ->whereLatestApprovalAction('pending')
                 ->count();
 
             // Count fulfilled requests (fully received)

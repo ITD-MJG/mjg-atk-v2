@@ -26,31 +26,19 @@ class AtkStockUsageStatus extends StatsOverviewWidget
         if ($user) {
             $divisionIds = $user->isSuperAdmin() ? null : $user->divisions->pluck('id');
 
-            // Count records where the latest approval history action is 'approved'
+            // Count records whose latest approval history action is 'submitted' (submitted, no approver action yet)
             $pendingCount = AtkStockUsage::when($divisionIds, fn ($q) => $q->whereIn('division_id', $divisionIds))
-                ->whereDoesntHave('approvalHistory', function ($query) {
-                    $query->orderByDesc('performed_at')->where('action', 'rejected');
-                })
-                ->whereDoesntHave('approvalHistory', function ($query) {
-                    $query->orderByDesc('performed_at')->where('action', 'partially_approved');
-                })
-                ->whereDoesntHave('approvalHistory', function ($query) {
-                    $query->orderByDesc('performed_at')->where('action', 'approved');
-                })
+                ->whereLatestApprovalAction('submitted')
                 ->count();
 
-            // Count records where the latest approval history action is 'partially_approved'
+            // Count records whose latest approval history action is 'pending' (in progress)
             $onProgressCount = AtkStockUsage::when($divisionIds, fn ($q) => $q->whereIn('division_id', $divisionIds))
-                ->whereHas('approvalHistory', function ($query) {
-                    $query->orderByDesc('performed_at')->where('action', 'partially_approved');
-                })
+                ->whereLatestApprovalAction('pending')
                 ->count();
 
-            // Count records that either have no approval history or the latest approval history action is not 'approved' or 'rejected'
+            // Count records whose latest approval history action is 'approved'
             $approvedCount = AtkStockUsage::when($divisionIds, fn ($q) => $q->whereIn('division_id', $divisionIds))
-                ->whereHas('approvalHistory', function ($query) {
-                    $query->orderByDesc('performed_at')->where('action', 'approved');
-                })
+                ->whereLatestApprovalAction('approved')
                 ->count();
         }
 
