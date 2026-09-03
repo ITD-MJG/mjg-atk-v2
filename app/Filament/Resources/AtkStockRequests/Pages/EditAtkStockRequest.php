@@ -32,9 +32,8 @@ class EditAtkStockRequest extends EditRecord
 
                     $user = auth()->user();
 
-                    // Requester, or a division Admin/Head of the record's division
-                    return $user->id === $record->requester_id
-                        || ($user->hasRole(['Admin', 'Head']) && $user->belongsToDivision($record->division_id));
+                    // Only Super Admin or the requester may publish a draft
+                    return $user->isSuperAdmin() || $user->id === $record->requester_id;
                 })
                 ->requiresConfirmation()
                 ->action(function () {
@@ -54,8 +53,17 @@ class EditAtkStockRequest extends EditRecord
                 ->label('Unpublish')
                 ->icon(Heroicon::ArrowDownTray)
                 ->color('gray')
-                ->visible(fn () => $this->record->status === AtkStockRequestStatus::Published
-                    && $this->record->approval_status === 'pending')
+                ->visible(function () {
+                    if (! ($this->record->status === AtkStockRequestStatus::Published
+                        && $this->record->approval_status === 'pending')) {
+                        return false;
+                    }
+
+                    $user = auth()->user();
+
+                    // Only Super Admin or the requester may unpublish
+                    return $user->isSuperAdmin() || $user->id === $this->record->requester_id;
+                })
                 ->requiresConfirmation()
                 ->action(function () {
                     $this->record->update(['status' => AtkStockRequestStatus::Draft]);
