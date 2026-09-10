@@ -35,6 +35,12 @@ class AtkStockRequestsRelationManager extends RelationManager
                     ->label('Pemohon')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('quantity')
+                    ->label('Jumlah')
+                    ->numeric()
+                    ->getStateUsing(fn (AtkStockRequest $record, RelationManager $livewire): int => (int) $record->atkStockRequestItems
+                        ->where('item_id', $livewire->getOwnerRecord()->item_id)
+                        ->sum('quantity')),
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge()
