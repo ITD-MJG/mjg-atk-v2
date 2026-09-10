@@ -76,6 +76,32 @@ class AtkDivisionStock extends Model
             });
     }
 
+    /**
+     * Stock requests from this division that include this item.
+     *
+     * Requests are raised per division and the item lives on the request's
+     * lines, so we match the division directly and constrain on the items.
+     */
+    public function atkStockRequests()
+    {
+        $itemId = $this->item_id;
+        $table = $this->getTable();
+
+        return $this->hasMany(AtkStockRequest::class, 'division_id', 'division_id')
+            ->whereHas('atkStockRequestItems', function ($query) use ($itemId, $table) {
+                // Instance context (e.g. a Filament relation manager) knows the item
+                // up front; a query context such as whereHas() must correlate the
+                // column instead, because $this->item_id is null there.
+                if ($itemId !== null) {
+                    $query->where('atk_stock_request_items.item_id', $itemId);
+
+                    return;
+                }
+
+                $query->whereColumn('atk_stock_request_items.item_id', $table.'.item_id');
+            });
+    }
+
     public function division(): BelongsTo
     {
         return $this->belongsTo(UserDivision::class, 'division_id');

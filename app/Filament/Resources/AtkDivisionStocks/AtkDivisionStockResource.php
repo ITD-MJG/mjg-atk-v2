@@ -4,6 +4,7 @@ namespace App\Filament\Resources\AtkDivisionStocks;
 
 use App\Filament\Resources\AtkDivisionStocks\Pages\ListAtkDivisionStocks;
 use App\Filament\Resources\AtkDivisionStocks\Pages\ViewAtkDivisionStock;
+use App\Filament\Resources\AtkDivisionStocks\RelationManagers\AtkStockRequestsRelationManager;
 use App\Filament\Resources\AtkDivisionStocks\RelationManagers\AtkStockTransactionsRelationManager;
 use App\Filament\Resources\AtkDivisionStocks\Schemas\AtkDivisionStockForm;
 use App\Filament\Resources\AtkDivisionStocks\Schemas\AtkDivisionStockInfolist;
@@ -60,6 +61,7 @@ class AtkDivisionStockResource extends Resource
         return [
             AtkStockTransactionsRelationManager::class,
             RelationManagers\IncomingFloatingStockRequestsRelationManager::class,
+            AtkStockRequestsRelationManager::class,
         ];
     }
 
