@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 
 class AtkStockRequest extends Model
@@ -60,6 +61,24 @@ class AtkStockRequest extends Model
     public function fulfillmentHistories(): HasMany
     {
         return $this->hasMany(FulfillmentHistory::class, 'request_id');
+    }
+
+    /**
+     * Stock transactions recorded while fulfilling this request.
+     *
+     * Transactions are written by FulfillmentService against the request item
+     * (trx_src_type = AtkStockRequestItem), so we reach them through the items.
+     */
+    public function atkStockTransactions(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            AtkStockTransaction::class,
+            AtkStockRequestItem::class,
+            'request_id', // FK on atk_stock_request_items
+            'trx_src_id', // FK on atk_stock_trx
+            'id',         // local key on atk_stock_requests
+            'id'          // local key on atk_stock_request_items
+        )->where('atk_stock_trx.trx_src_type', AtkStockRequestItem::class);
     }
 
     public function approval(): MorphOne

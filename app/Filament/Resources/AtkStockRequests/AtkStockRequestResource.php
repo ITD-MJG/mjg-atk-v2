@@ -78,6 +78,7 @@ class AtkStockRequestResource extends Resource
     {
         return [
             \App\Filament\Resources\AtkStockRequests\RelationManagers\AtkStockRequestItemsRelationManager::class,
+            \App\Filament\Resources\AtkStockRequests\RelationManagers\AtkStockTransactionsRelationManager::class,
         ];
     }
 
