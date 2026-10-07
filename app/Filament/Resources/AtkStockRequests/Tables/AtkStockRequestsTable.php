@@ -3,11 +3,14 @@
 namespace App\Filament\Resources\AtkStockRequests\Tables;
 
 use App\Enums\AtkStockRequestStatus;
+use App\Enums\FulfillmentStatus;
 use App\Exports\AtkStockRequestExport;
 use App\Filament\Actions\ApprovalAction;
 use App\Filament\Actions\ResubmitAction;
 use App\Filament\Resources\AtkStockRequests\Schemas\AtkStockRequestForm;
+use App\Models\ApprovalHistory;
 use App\Models\AtkStockRequest;
+use App\Models\UserDivision;
 use App\Services\ApprovalProcessingService;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
@@ -75,8 +78,8 @@ class AtkStockRequestsTable
                 TextColumn::make('fulfillment_status')
                     ->label('Status Pemenuhan')
                     ->badge()
-                    ->formatStateUsing(fn (\App\Enums\FulfillmentStatus $state): string => $state->getLabel())
-                    ->color(fn (\App\Enums\FulfillmentStatus $state): string => $state->getColor())
+                    ->formatStateUsing(fn (FulfillmentStatus $state): string => $state->getLabel())
+                    ->color(fn (FulfillmentStatus $state): string => $state->getColor())
                     ->visible(fn () => auth()->user()->can('view atk-stock-request')),
                 TextColumn::make('approved_by.name')
                     ->label('Approved By')
@@ -94,7 +97,7 @@ class AtkStockRequestsTable
             ->filters([
                 SelectFilter::make('division_id')
                     ->label('Division')
-                    ->options(fn () => auth()->user()->isGA() || auth()->user()->isSuperAdmin() ? \App\Models\UserDivision::pluck('name', 'id') : auth()->user()->divisions->pluck('name', 'id'))
+                    ->options(fn () => auth()->user()->isGA() || auth()->user()->isSuperAdmin() ? UserDivision::pluck('name', 'id') : auth()->user()->divisions->pluck('name', 'id'))
                     ->visible(fn () => auth()->user()->isGA() || auth()->user()->isSuperAdmin() || auth()->user()->divisions()->count() > 1),
                 SelectFilter::make('status')
                     ->options(AtkStockRequestStatus::class),
@@ -173,7 +176,7 @@ class AtkStockRequestsTable
                         }
 
                         // If status is Published, check if rejected with allow_resubmission = true
-                        $lastRejection = \App\Models\ApprovalHistory::where('approvable_type', AtkStockRequest::class)
+                        $lastRejection = ApprovalHistory::where('approvable_type', AtkStockRequest::class)
                             ->where('approvable_id', $record->id)
                             ->where('action', 'rejected')
                             ->orderBy('performed_at', 'desc')
@@ -188,7 +191,9 @@ class AtkStockRequestsTable
                         return $step && $step->allow_resubmission;
                     })
                     ->mutateFormDataUsing(function (array $data, $record, array $arguments) {
-                        $data['division_id'] = $data['division_id'] ?? auth()->user()->divisions->first()?->id;
+                        // Never fall back to an arbitrary division: the record already
+                        // owns one, and reassigning it would orphan its approval history.
+                        $data['division_id'] = $data['division_id'] ?? $record->division_id;
 
                         if ($arguments['draft'] ?? false) {
                             $data['status'] = AtkStockRequestStatus::Draft;

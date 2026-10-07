@@ -5,8 +5,11 @@ namespace App\Filament\Resources\AtkStockRequests\Pages;
 use App\Enums\AtkStockRequestStatus;
 use App\Filament\Resources\AtkStockRequests\AtkStockRequestResource;
 use App\Models\AtkStockRequest;
+use App\Models\UserDivision;
 use App\Services\ApprovalProcessingService;
+use App\Services\StockRequestService;
 use Filament\Actions\CreateAction;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Support\Enums\Width;
 
@@ -21,31 +24,55 @@ class ListAtkStockRequests extends ListRecords
                 ->label('Buat Draft')
                 ->modalHeading('Buat Draft Permintaan Stok ATK')
                 ->createAnother(false)
-                ->mutateFormDataUsing(function (array $data) {
-                    $data['division_id'] = $data['division_id'] ?? auth()->user()->divisions->first()?->id;
-                    $data['requester_id'] = auth()->user()->id;
-
-                    return $data;
+                ->using(function (array $data) {
+                    return $this->createRequests($data, AtkStockRequestStatus::Draft);
                 })
                 ->extraModalFooterActions(fn (CreateAction $action): array => [
                     $action->makeModalSubmitAction('publish')
                         ->label('Publish')
                         ->color('success')
-                        ->mutateFormDataUsing(function (array $data) {
-                            $data['division_id'] = $data['division_id'] ?? auth()->user()->divisions->first()?->id;
-                            $data['requester_id'] = auth()->user()->id;
-                            $data['status'] = AtkStockRequestStatus::Published;
+                        ->requiresConfirmation()
+                        ->using(function (array $data) {
+                            $requests = $this->createRequests($data, AtkStockRequestStatus::Published);
 
-                            return $data;
-                        })
-                        ->after(function (AtkStockRequest $record) {
-                            app(ApprovalProcessingService::class)->createApproval($record, AtkStockRequest::class);
-                        })
-                        ->requiresConfirmation(),
+                            foreach ($requests as $request) {
+                                app(ApprovalProcessingService::class)->createApproval($request, AtkStockRequest::class);
+                            }
+
+                            return $requests[0] ?? null;
+                        }),
                 ])
                 ->visible(fn () => auth()->user()->can('create atk-stock-request'))
-                ->modalWidth(Width::SevenExtraLarge)
-                ->successNotificationTitle('Draft permintaan stok ATK berhasil dibuat'),
+                ->modalWidth(Width::SevenExtraLarge),
         ];
+    }
+
+    /**
+     * Fan out one request per selected division.
+     *
+     * @return array<int, AtkStockRequest>
+     */
+    protected function createRequests(array $data, AtkStockRequestStatus $status): array
+    {
+        $requests = app(StockRequestService::class)->createStockRequestsForDivisions(auth()->user(), [
+            'division_ids' => $data['division_ids'],
+            'status' => $status,
+            'notes' => $data['notes'] ?? null,
+            'items' => array_values($data['atkStockRequestItems'] ?? []),
+        ]);
+
+        $divisions = UserDivision::whereIn('id', collect($requests)->pluck('division_id'))
+            ->pluck('name')
+            ->implode(', ');
+
+        Notification::make()
+            ->title($status === AtkStockRequestStatus::Published ? 'Permintaan dipublikasikan' : 'Draft dibuat')
+            ->body($requests === []
+                ? 'Tidak ada permintaan yang dibuat.'
+                : count($requests).' permintaan untuk: '.$divisions.'.')
+            ->success()
+            ->send();
+
+        return $requests;
     }
 }

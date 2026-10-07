@@ -12,7 +12,6 @@ class CreateAtkStockRequest extends CreateRecord
     protected function mutateFormDataBeforeCreate(array $data): array
     {
         $data['requester_id'] = auth()->id();
-        $data['division_id'] = $data['division_id'] ?? auth()->user()->divisions->first()?->id;
 
         return $data;
     }

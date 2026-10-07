@@ -10,11 +10,11 @@ use App\Models\AtkDivisionStockSetting;
 use App\Models\AtkItem;
 use App\Models\UserDivision;
 use Filament\Actions\Action;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -31,6 +31,21 @@ class AtkStockRequestForm
                     ->schema([
                         Grid::make(2)
                             ->schema([
+                                CheckboxList::make('division_ids')
+                                    ->label('Divisi')
+                                    ->options(function () {
+                                        if (auth()->user()->isSuperAdmin()) {
+                                            return UserDivision::all()->pluck('name', 'id');
+                                        }
+
+                                        return auth()->user()->divisions->pluck('name', 'id');
+                                    })
+                                    ->required()
+                                    ->minItems(1)
+                                    ->columns(2)
+                                    ->visible(fn (string $operation) => $operation === 'create')
+                                    ->dehydrated(fn (string $operation) => $operation === 'create')
+                                    ->helperText('Satu permintaan akan dibuat untuk setiap divisi yang dipilih.'),
                                 Select::make('division_id')
                                     ->label('Divisi')
                                     ->options(function () {
@@ -44,9 +59,8 @@ class AtkStockRequestForm
                                     ->preload()
                                     ->required()
                                     ->live()
-                                    ->default(fn () => auth()->user()->divisions->first()?->id)
-                                    ->hidden(fn () => ! auth()->user()->isSuperAdmin() && auth()->user()->divisions()->count() <= 1)
-                                    ->dehydrated(),
+                                    ->visible(fn (string $operation) => $operation !== 'create')
+                                    ->dehydrated(fn (string $operation) => $operation !== 'create'),
                                 TextInput::make('request_number')
                                     ->label('Nomor Permintaan')
                                     ->placeholder('Auto-generated')
@@ -281,34 +295,9 @@ class AtkStockRequestForm
                                     ->afterStateUpdated(function (callable $get, callable $set, $state) {
                                         $itemId = $get('item_id');
 
-                                        // First run the original validation logic
-                                        if ($itemId && $state) {
-                                            $setting = AtkDivisionStockSetting::where('division_id', $get('../../division_id'))
-                                                ->where('item_id', $itemId)
-                                                ->first();
-
-                                            if ($setting) {
-                                                $stock = AtkDivisionStock::where('division_id', $get('../../division_id'))
-                                                    ->where('item_id', $itemId)
-                                                    ->first();
-
-                                                $currentStock = $stock ? $stock->current_stock : 0;
-                                                $maxLimit = $setting->max_limit;
-                                                $availableSpace = $maxLimit - $currentStock;
-
-                                                if ($state > $availableSpace) {
-                                                    // Reset to available space
-                                                    $set('quantity', $availableSpace);
-
-                                                    // Show notification to user
-                                                    Notification::make()
-                                                        ->title('Quantity exceeds maximum limit')
-                                                        ->body("Quantity requested exceeds maximum limit, maximum quantity available: {$availableSpace}")
-                                                        ->warning()
-                                                        ->send();
-                                                }
-                                            }
-                                        }
+                                        // Over-limit quantities are reported by this field's validation
+                                        // rule and re-checked server-side in StockRequestService. The value
+                                        // is never rewritten here, so the user always sees their own input.
 
                                         // Update new_mac_estimate when quantity changes
                                         if ($itemId && $state) {
@@ -371,24 +360,35 @@ class AtkStockRequestForm
                                                     return;
                                                 }
 
-                                                $setting = AtkDivisionStockSetting::where('division_id', $get('../../division_id'))
-                                                    ->where('item_id', $itemId)
-                                                    ->first();
+                                                // Validate against every selected division on create;
+                                                // the request is single-division on edit.
+                                                $divisionIds = $get('../../division_ids')
+                                                    ?: array_filter([$get('../../division_id')]);
 
-                                                if (! $setting) {
+                                                if (empty($divisionIds)) {
                                                     return;
                                                 }
 
-                                                $stock = AtkDivisionStock::where('division_id', $get('../../division_id'))
-                                                    ->where('item_id', $itemId)
-                                                    ->first();
+                                                foreach ($divisionIds as $divisionId) {
+                                                    $setting = AtkDivisionStockSetting::where('division_id', $divisionId)
+                                                        ->where('item_id', $itemId)
+                                                        ->first();
 
-                                                $currentStock = $stock ? $stock->current_stock : 0;
-                                                $maxLimit = $setting->max_limit;
-                                                $availableSpace = $maxLimit - $currentStock;
+                                                    if (! $setting) {
+                                                        continue; // No limit configured for this division/item.
+                                                    }
 
-                                                if ($value > $availableSpace) {
-                                                    $fail("Quantity requested ({$value}) exceeds maximum available quantity ({$availableSpace}) for this item.");
+                                                    $stock = AtkDivisionStock::where('division_id', $divisionId)
+                                                        ->where('item_id', $itemId)
+                                                        ->first();
+
+                                                    $currentStock = $stock ? $stock->current_stock : 0;
+                                                    $availableSpace = $setting->max_limit - $currentStock;
+
+                                                    if ($value > $availableSpace) {
+                                                        $divisionName = UserDivision::find($divisionId)?->name ?? $divisionId;
+                                                        $fail("Quantity requested ({$value}) exceeds maximum available quantity ({$availableSpace}) for {$divisionName}.");
+                                                    }
                                                 }
                                             };
                                         },
