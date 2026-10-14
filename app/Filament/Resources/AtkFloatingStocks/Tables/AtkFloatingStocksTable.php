@@ -13,6 +13,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
+use Filament\Tables\Enums\RecordActionsPosition;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -116,7 +117,7 @@ class AtkFloatingStocksTable
                 EditAction::make()
                     ->successNotificationTitle('Stok Umum ATK berhasil diperbarui')
                     ->hidden(fn () => auth()->user()->hasRole('Admin')),
-            ])
+            ], position: RecordActionsPosition::BeforeColumns)
             ->toolbarActions([
                 BulkActionGroup::make([
                     BulkTransferFloatingStockAction::make(),

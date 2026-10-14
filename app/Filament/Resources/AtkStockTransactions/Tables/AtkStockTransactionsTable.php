@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\AtkStockTransactions\Tables;
 
 use Filament\Actions\ViewAction;
+use Filament\Tables\Enums\RecordActionsPosition;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -57,7 +58,7 @@ class AtkStockTransactionsTable
             ])
             ->actions([
                 ViewAction::make(),
-            ])
+            ], position: RecordActionsPosition::BeforeColumns)
             ->bulkActions([
                 //
             ]);

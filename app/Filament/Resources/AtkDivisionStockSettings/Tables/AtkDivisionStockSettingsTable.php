@@ -12,6 +12,7 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
+use Filament\Tables\Enums\RecordActionsPosition;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -70,7 +71,7 @@ class AtkDivisionStockSettingsTable
                 DeleteAction::make()
                     ->successNotificationTitle('ATK Division Stock Setting deleted')
                     ->hidden(fn () => auth()->user()->hasRole('Admin')),
-            ])
+            ], position: RecordActionsPosition::BeforeColumns)
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()

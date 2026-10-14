@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\AtkItemPriceHistories\Tables;
 
+use Filament\Tables\Enums\RecordActionsPosition;
 use Filament\Tables\Table;
 
 class AtkItemPriceHistoriesTable
@@ -40,7 +41,7 @@ class AtkItemPriceHistoriesTable
             ])
             ->actions([
                 \Filament\Actions\ViewAction::make(),
-            ])
+            ], position: RecordActionsPosition::BeforeColumns)
             ->bulkActions([
                 \Filament\Actions\BulkActionGroup::make([
                     \Filament\Actions\DeleteBulkAction::make()

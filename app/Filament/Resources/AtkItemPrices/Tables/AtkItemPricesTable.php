@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\AtkItemPrices\Tables;
 
+use Filament\Tables\Enums\RecordActionsPosition;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -47,7 +48,7 @@ class AtkItemPricesTable
                 \Filament\Actions\EditAction::make()
                     ->successNotificationTitle('ATK Item Price updated')
                     ->hidden(fn () => auth()->user()->hasRole('Admin')),
-            ])
+            ], position: RecordActionsPosition::BeforeColumns)
             ->bulkActions([
                 \Filament\Actions\BulkActionGroup::make([
                     \Filament\Actions\DeleteBulkAction::make()

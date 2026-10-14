@@ -5,6 +5,7 @@ namespace App\Filament\Resources\UserDivisions\Tables;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Tables\Enums\RecordActionsPosition;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -33,7 +34,7 @@ class UserDivisionsTable
             ->recordActions([
                 EditAction::make()
                     ->successNotificationTitle('User Division updated'),
-            ])
+            ], position: RecordActionsPosition::BeforeColumns)
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()

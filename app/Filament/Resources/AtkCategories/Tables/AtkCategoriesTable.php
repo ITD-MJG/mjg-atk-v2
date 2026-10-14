@@ -6,6 +6,7 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Tables\Enums\RecordActionsPosition;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 
@@ -35,7 +36,7 @@ class AtkCategoriesTable
                 DeleteAction::make()
                     ->successNotificationTitle('Kategori ATK berhasil dihapus')
                     ->hidden(fn () => auth()->user()->hasRole('Admin')),
-            ])
+            ], position: RecordActionsPosition::BeforeColumns)
             ->bulkActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()

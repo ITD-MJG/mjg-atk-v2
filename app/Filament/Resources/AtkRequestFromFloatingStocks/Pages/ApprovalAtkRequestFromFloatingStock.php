@@ -11,6 +11,7 @@ use BackedEnum;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Enums\RecordActionsPosition;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -107,7 +108,7 @@ class ApprovalAtkRequestFromFloatingStock extends ListRecords
                         ->title('Permintaan stok umum berhasil ditolak!')
                         ->success(),
                 ),
-            ]);
+            ], position: RecordActionsPosition::BeforeColumns);
     }
 
     protected function getQuery(): Builder

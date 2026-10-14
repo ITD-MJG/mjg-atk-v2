@@ -12,6 +12,7 @@ use Filament\Actions\ViewAction;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Schema;
 use Filament\Support\Enums\Width;
+use Filament\Tables\Enums\RecordActionsPosition;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -85,7 +86,7 @@ class AtkRequestFromFloatingStocksTable
                     ->mountUsing(fn (Schema $schema, $record) => $schema->fill($record->toArray()))
                     ->form(fn (Schema $schema) => AtkRequestFromFloatingStockForm::configure($schema))
                     ->successNotificationTitle('Permintaan dikirim ulang'),
-            ])
+            ], position: RecordActionsPosition::BeforeColumns)
             ->bulkActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),

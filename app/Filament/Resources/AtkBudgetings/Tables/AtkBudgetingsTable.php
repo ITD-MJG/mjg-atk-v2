@@ -4,6 +4,7 @@ namespace App\Filament\Resources\AtkBudgetings\Tables;
 
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
+use Filament\Tables\Enums\RecordActionsPosition;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -58,7 +59,7 @@ class AtkBudgetingsTable
                 EditAction::make()
                     ->successNotificationTitle('ATK Budgeting updated'),
                 ViewAction::make(),
-            ])
+            ], position: RecordActionsPosition::BeforeColumns)
             ->bulkActions([
                 //
             ]);
