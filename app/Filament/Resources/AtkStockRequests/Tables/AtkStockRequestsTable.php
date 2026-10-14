@@ -316,6 +316,39 @@ class AtkStockRequestsTable
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
                         ->successNotificationTitle('Permintaan stok ATK berhasil dihapus'),
+                    BulkAction::make('publish')
+                        ->label('Publish Selected')
+                        ->icon(Heroicon::ArrowUpTray)
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->modalHeading('Publikasikan Permintaan Terpilih')
+                        ->modalDescription('Permintaan terpilih yang masih draft akan dipublikasikan dan masuk ke alur approval. Lanjutkan?')
+                        ->visible(fn () => auth()->user()->isSuperAdmin() || auth()->user()->can('update atk-stock-request'))
+                        ->action(function (Collection $records) {
+                            $user = auth()->user();
+                            $published = 0;
+
+                            foreach ($records as $record) {
+                                // Only Super Admin or the requester may publish a draft
+                                if ($record->status !== AtkStockRequestStatus::Draft
+                                    || (! $user->isSuperAdmin() && $user->id !== $record->requester_id)) {
+                                    continue;
+                                }
+
+                                $record->update(['status' => AtkStockRequestStatus::Published]);
+
+                                if (! $record->approval) {
+                                    app(ApprovalProcessingService::class)->createApproval($record, AtkStockRequest::class);
+                                }
+
+                                $published++;
+                            }
+
+                            Notification::make()
+                                ->title("{$published} permintaan stok ATK berhasil dipublikasikan")
+                                ->success()
+                                ->send();
+                        }),
                     BulkAction::make('export')
                         ->label('Export Selected')
                         ->icon(Heroicon::ArrowDownTray)

@@ -9,14 +9,17 @@ use App\Models\Approval;
 use App\Models\ApprovalFlowStep;
 use App\Models\AtkStockRequest;
 use BackedEnum;
+use Filament\Actions\BulkAction;
+use Filament\Actions\BulkActionGroup;
+use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
-
 class ApprovalAtkStockRequest extends ListRecords
 {
     protected static string $resource = AtkStockRequestResource::class;
@@ -112,6 +115,65 @@ class ApprovalAtkStockRequest extends ListRecords
                         ->title('Permintaan ATK berhasil ditolak!')
                         ->success(),
                 ),
+            ])
+            ->bulkActions([
+                BulkActionGroup::make([
+                    BulkAction::make('approve')
+                        ->label('Setujui Terpilih')
+                        ->icon(Heroicon::CheckCircle)
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->modalHeading('Setujui Permintaan Terpilih')
+                        ->modalDescription('Permintaan terpilih yang dapat Anda setujui akan diproses. Lanjutkan?')
+                        ->action(function (Collection $records) {
+                            $user = auth()->user();
+                            $approved = 0;
+
+                            foreach ($records as $record) {
+                                if (! $this->canApprove($record, $user)) {
+                                    continue;
+                                }
+
+                                $this->processApproval($record, $user, 'approve', 'Permintaan disetujui');
+                                $approved++;
+                            }
+
+                            Notification::make()
+                                ->title("{$approved} permintaan ATK berhasil disetujui!")
+                                ->success()
+                                ->send();
+                        }),
+                    BulkAction::make('reject')
+                        ->label('Tolak Terpilih')
+                        ->icon(Heroicon::XCircle)
+                        ->color('danger')
+                        ->requiresConfirmation()
+                        ->modalHeading('Tolak Permintaan Terpilih')
+                        ->modalDescription('Permintaan terpilih yang dapat Anda proses akan ditolak. Lanjutkan?')
+                        ->form([
+                            Textarea::make('rejection_notes')
+                                ->label('Alasan Penolakan')
+                                ->placeholder('Berikan alasan penolakan permintaan ini...'),
+                        ])
+                        ->action(function (Collection $records, array $data) {
+                            $user = auth()->user();
+                            $rejected = 0;
+
+                            foreach ($records as $record) {
+                                if (! $this->canApprove($record, $user)) {
+                                    continue;
+                                }
+
+                                $this->processApproval($record, $user, 'reject', $data['rejection_notes'] ?? null);
+                                $rejected++;
+                            }
+
+                            Notification::make()
+                                ->title("{$rejected} permintaan ATK berhasil ditolak!")
+                                ->success()
+                                ->send();
+                        }),
+                ]),
             ]);
     }
 
@@ -151,6 +213,27 @@ class ApprovalAtkStockRequest extends ListRecords
         }
 
         return $query->whereIn('id', $approvableIds);
+    }
+
+    protected function canApprove(AtkStockRequest $record, $user): bool
+    {
+        return app(\App\Services\ApprovalService::class)->canUserApproveStockRequest($record, $user);
+    }
+
+    protected function processApproval(AtkStockRequest $record, $user, string $action, ?string $notes): void
+    {
+        $validationService = app(\App\Services\ApprovalValidationService::class);
+        $historyService = app(\App\Services\ApprovalHistoryService::class);
+        $stockUpdateService = app(\App\Services\StockUpdateService::class);
+        $processingService = new \App\Services\ApprovalProcessingService($validationService, $historyService, $stockUpdateService);
+        $approvalService = new \App\Services\ApprovalService($validationService, $processingService, $historyService, $stockUpdateService);
+
+        $approval = $record->approval;
+
+        if ($approval) {
+            $approvalService->processApprovalStep($approval, $user, $action, $notes);
+            $approvalService->syncApprovalStatus($record);
+        }
     }
 
     protected function getHeaderActions(): array
