@@ -312,7 +312,7 @@ class AtkStockRequestsTable
                         ),
                     )
                     ->successNotificationTitle('Permintaan stok ATK berhasil dikirim ulang'),
-            ])
+            ], position: RecordActionsPosition::BeforeColumns)
             ->bulkActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()

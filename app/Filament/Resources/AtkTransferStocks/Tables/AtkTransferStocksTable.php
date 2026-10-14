@@ -180,7 +180,7 @@ class AtkTransferStocksTable
                         ->title('Permintaan transfer stok berhasil ditolak')
                         ->success(),
                 ),
-            ])
+            ], position: RecordActionsPosition::BeforeColumns)
             ->bulkActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()

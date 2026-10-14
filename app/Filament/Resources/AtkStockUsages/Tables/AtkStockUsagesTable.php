@@ -139,7 +139,7 @@ class AtkStockUsagesTable
                             $schema,
                         ),
                     ),
-            ])
+            ], position: RecordActionsPosition::BeforeColumns)
             ->bulkActions([
                 BulkActionGroup::make([
                     BulkExportStockUsagePdfAction::make(),
